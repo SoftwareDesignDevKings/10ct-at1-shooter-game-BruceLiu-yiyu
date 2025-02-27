@@ -46,24 +46,22 @@ class Game:
             # self.clock.tick( ? )
 
             # TODO: Handle player input and events
-            # self.handle_events()
+            self.handle_events()
 
             # TODO: Update game objects
-            # self.update()
+            if not self.game_over:
+                self.update()
 
             # TODO: Draw everything on the screen
-            # self.draw()
+            self.draw()
 
         pygame.quit()
 
     def handle_events(self):
         """Process user input (keyboard, mouse, quitting)."""
-
         for event in pygame.event.get():
-            pass
-            # TODO: Allow the player to quit the game
-            # if event.type == ?:
-            #     self.running = False
+           if event.type == pygame.QUIT:
+                self.running = False
 
     def update(self):
         """Update the game state (player, enemies, etc.)."""
@@ -73,9 +71,10 @@ class Game:
         """Render all game elements to the screen."""
         pass
         # TODO: Draw the background
-        # self.screen.blit(?, (0, 0))
+        self.screen.blit(self.background, (0, 0))
 
         # TODO: Draw player, enemies, UI elements
 
         # Refresh the screen
         pygame.display.flip()
+
