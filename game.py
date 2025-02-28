@@ -4,27 +4,35 @@ import random
 import os
 
 import app
+from player import Player
 
 class Game:
     def __init__(self):
         pygame.init()  # Initialize Pygame
+        
+        self.screen = pygame.display.set_mode((app.WIDTH, app.HEIGHT))
+        pygame.display.set_caption("Shooter")
 
-        # TODO: Create a game window using Pygame
-        # self.screen = ?
+        
+        self.clock = pygame.time.Clock()
 
-        # TODO: Set up the game clock for frame rate control
-        # self.clock = ?
+        
+        self.assets = app.load_assets()
 
-        # TODO: Load assets (e.g., fonts, images)
-        # self.font_small = ?
+        font_path = os.path.join("assets", "PressStart2P.ttf")
+        self.font_small = pygame.font.Font(font_path, 18)
+        self.font_large = pygame.font.Font(font_path, 32)
 
-        # TODO: Set up game state variables
-        # self.running = True
+        self.background = self.create_random_background(
+        app.WIDTH, app.HEIGHT, self.assets["floor_tiles"]
+    )
+        self.running = True
+        self.game_over = False
 
-        # TODO: Create a random background
-        # self.background = ?
+        self.reset_game()
         
     def reset_game(self):
+        self.player = Player(app.WIDTH // 2, app.HEIGHT // 2, self.assets)
         self.game_over = False
 
     def create_random_background(self, width, height, floor_tiles):
@@ -41,9 +49,9 @@ class Game:
 
     def run(self):
         while self.running:
-            pass
+            
             # TODO: Set a frame rate limit
-            # self.clock.tick( ? )
+            self.clock.tick(app.FPS)
 
             # TODO: Handle player input and events
             self.handle_events()
@@ -64,16 +72,18 @@ class Game:
                 self.running = False
 
     def update(self):
-        """Update the game state (player, enemies, etc.)."""
-        pass
+        self.player.handle_input()
+        self.player.update()
 
     def draw(self):
         """Render all game elements to the screen."""
-        pass
+       
         # TODO: Draw the background
         self.screen.blit(self.background, (0, 0))
 
         # TODO: Draw player, enemies, UI elements
+        if not self.game_over:
+            self.player.draw(self.screen) 
 
         # Refresh the screen
         pygame.display.flip()
