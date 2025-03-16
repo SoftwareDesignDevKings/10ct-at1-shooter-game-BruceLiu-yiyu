@@ -5,9 +5,10 @@ import math
 class Enemy:
     def __init__(self, x, y, enemy_type, enemy_assets, speed=app.DEFAULT_ENEMY_SPEED):
         # TODO: Define attributes for X and Y
-        
+        self.x = x
+        self.y = y
         # TODO: Define an attribute for movement speed
-        
+        self.speed = speed
         # TODO: Load animation frames
         self.frames = enemy_assets[enemy_type]
         self.frame_index = 0
@@ -17,19 +18,25 @@ class Enemy:
         self.rect = self.image.get_rect(center=(self.x, self.y))
         
         # TODO: Define an attribute for enemy type
+        self.enemy_type = enemy_type 
         
         # TODO: Track if enemy is facing left
-        
+        self.facing_left = False
         # TODO: Define knockback properties
+        self.knockback_dist_remaining = 0
+        self.knockback_dx = 0
+        self.knockback_dy = 0
         
     def update(self, player):
         # TODO: Check if knockback is active and call apply_knockback()
-
+        self.move_toward_player(player)
         # TODO: If no knockback, move toward the player
-
+        if self.knockback_dist_remaining > 0:
+            self.apply_knockback()
+        else:
+            self.move_toward_player(player)
         # TODO: Call animate() to update enemy sprite animation
-
-        pass
+        self.animate()
 
     def move_toward_player(self, player):
         # Calculates direction vector toward player
@@ -45,7 +52,6 @@ class Enemy:
         
         # Updates enemy position
         self.rect.center = (self.x, self.y)
-        pass
 
     def apply_knockback(self):
         step = min(app.ENEMY_KNOCKBACK_SPEED, self.knockback_dist_remaining)
@@ -53,9 +59,16 @@ class Enemy:
 
         # TODO: Apply knockback effect to enemy position 
         # Hint: apply the dx, dy attributes
-        
+        self.x += self.knockback_dx * step
+        self.y += self.knockback_dy * step
+
         # TODO: Update facing direction based on knockback direction
-        pass
+        if self.knockback_dx < 0:
+            self.facing_left = True
+        else:
+            self.facing_left = False
+
+        self.rect.center = (self.x, self.y)
 
     def animate(self):
         self.animation_timer += 1
