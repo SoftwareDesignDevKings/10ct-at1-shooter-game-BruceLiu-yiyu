@@ -1,7 +1,7 @@
-import app
+'''import app
 
 class Powerups:
-    def __init__(self, x, y)
+    def __init__(self, x, y):
         self.x = x
         self.y = y
         self.image = app.pygame.Surface((15, 15), app.pygame.SRCALPHA)
@@ -9,4 +9,4 @@ class Powerups:
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self, surface):
-        surface.blit(self.image, self.rect)
+        surface.blit(self.image, self.rect)'''

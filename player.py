@@ -1,6 +1,9 @@
+import threading
 import pygame
 import app  # Contains global settings like WIDTH, HEIGHT, PLAYER_SPEED, etc.
 import math
+import random
+import time
 
 from bullet import Bullet
 
@@ -28,6 +31,7 @@ class Player:
         self.xp = 0
         
         self.health = 5
+        self.invincible = False
 
         self.bullet_speed = 10
         self.bullet_size = 10
@@ -35,6 +39,8 @@ class Player:
         self.shoot_cooldown = 10
         self.shoot_timer = 0
         self.bullets = []
+
+        self.level = 1
 
     def handle_input(self):
         """Check and respond to keyboard/mouse input."""
@@ -101,7 +107,6 @@ class Player:
             center = self.rect.center
             self.rect = self.image.get_rect()
             self.rect.center = center
-        
 
     def draw(self, surface):
         """Draw the player on the screen."""
@@ -118,7 +123,16 @@ class Player:
 
     def take_damage(self, amount):
         """Reduce the player's health by a given amount, not going below zero."""
-        self.health = max(0, self.health - amount)
+        if not self.invincible:
+            self.health = max(0, self.health - amount)
+            # Start the invincibility period
+            self.invincible = True
+            threading.Thread(target=self._start_invincibility_timer).start()
+        else:
+            pass
+
+                
+
         
     def shoot_toward_position(self, tx, ty):
         if self.shoot_timer >= self.shoot_cooldown:
@@ -158,3 +172,9 @@ class Player:
 
     def add_xp(self, amount):
         self.xp += amount
+
+    def _start_invincibility_timer(self):
+        """Manage the invincibility timer in a separate thread."""
+        invincibility_duration = 0.7 
+        time.sleep(invincibility_duration)
+        self.invincible = False

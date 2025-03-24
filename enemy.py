@@ -79,11 +79,15 @@ class Enemy:
             self.image = self.frames[self.frame_index]
             self.rect = self.image.get_rect()
             self.rect.center = center
-        pass
+
 
     def draw(self, surface):
         # TODO: Flip the sprite if facing left
-
+        if self.facing_left:
+            flipped_image = pygame.transform.flip(self.image, True, False)
+            surface.blit(flipped_image, self.rect)
+        else:
+            surface.blit(self.image, self.rect)
         # TODO: Draw enemy sprite on the given surface
         
         pass
@@ -96,4 +100,3 @@ class Enemy:
             self.knockback_dx = dx / length
             self.knockback_dy = dy / length
             self.knockback_dist_remaining = dist
-        pass
