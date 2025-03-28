@@ -276,6 +276,7 @@ class Game:
         {"name": "Faster Bullet",  "desc": "Bullet speed +2"},
         {"name": "Extra Bullet",   "desc": "Fire additional bullet"},
         {"name": "Shorter Cooldown", "desc": "Shoot more frequently"},
+        {"name": "Piercing Bullets", "desc": "Piercing Bullets, duration 20 sec"}
     ]
         return random.sample(possible_upgrades, k=num)
     
@@ -289,6 +290,9 @@ class Game:
             player.bullet_count += 1
         elif name == "Shorter Cooldown":
             player.shoot_cooldown = max(1, int(player.shoot_cooldown * 0.8))
+        #elif name == "Piercing Bullets": 
+            #player.
+
 
 
     def draw_upgrade_menu(self):
@@ -312,7 +316,7 @@ class Game:
 
 
     def check_for_level_up(self):
-        xp_needed = self.player.level * self.player.level * 1
+        xp_needed = self.player.level * self.player.level * 5
         if self.player.xp >= xp_needed:
             # Leveled up
             self.player.level += 1
