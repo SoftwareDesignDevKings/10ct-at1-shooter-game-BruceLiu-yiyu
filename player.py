@@ -34,11 +34,12 @@ class Player:
         self.invincible = False
 
         self.bullet_speed = 10
-        self.bullet_size = 10
+        self.bullet_size = 1
         self.bullet_count = 1
         self.shoot_cooldown = 10
         self.shoot_timer = 0
         self.bullets = []
+        self.assets = assets
 
         self.level = 1
 
@@ -159,7 +160,7 @@ class Player:
             final_vx = math.cos(angle) * self.bullet_speed
             final_vy = math.sin(angle) * self.bullet_speed
 
-            bullet = Bullet(self.x, self.y, final_vx, final_vy, self.bullet_size)
+            bullet = Bullet(self.x, self.y, final_vx, final_vy, self.bullet_size, self.assets)
             self.bullets.append(bullet)
         self.shoot_timer = 0
 
