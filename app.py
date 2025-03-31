@@ -19,7 +19,8 @@ ENEMY_SCALE_FACTOR = 2
 PLAYER_SCALE_FACTOR = 2
 FLOOR_TILE_SCALE_FACTOR = 2
 HEALTH_SCALE_FACTOR = 3
-FIREBALL_SCALE_FACTOR = 0.5
+FIREBALL_SCALE_FACTOR = 0.15
+FIREWAND_SCALE_FACTOR = 0.125
 
 PUSHBACK_DISTANCE = 80
 ENEMY_KNOCKBACK_SPEED = 5
@@ -80,7 +81,9 @@ def load_assets():
 
     #Bullet images
     assets["bullets"] = load_frames("fireball", 6, scale_factor=FIREBALL_SCALE_FACTOR)
-
+    
+    #weapon images
+    assets["weapons"] = load_frames("firewand", 8, scale_factor=FIREWAND_SCALE_FACTOR)
     # Example coin image (uncomment if you have coin frames / images)
     # assets["coin"] = pygame.image.load(os.path.join("assets", "coin.png")).convert_alpha()
 

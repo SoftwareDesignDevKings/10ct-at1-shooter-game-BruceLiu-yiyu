@@ -26,6 +26,13 @@ class Enemy:
         self.knockback_dist_remaining = 0
         self.knockback_dx = 0
         self.knockback_dy = 0
+
+        self.max_health = 0  # Base health, adjust per enemy type
+        if enemy_type == "orc":
+            self.max_health = 1
+        elif enemy_type == "demon":
+            self.max_health = 2
+        self.health = self.max_health
         
     def update(self, player):
         # TODO: Check if knockback is active and call apply_knockback()
@@ -89,7 +96,21 @@ class Enemy:
         else:
             surface.blit(self.image, self.rect)
         # TODO: Draw enemy sprite on the given surface
+        health_bar_width = 40
+        health_bar_height = 5
+        health_percent = max(0, self.health / self.max_health)
         
+        # Position health bar above enemy
+        bar_x = self.rect.centerx - health_bar_width // 2
+        bar_y = self.rect.top - 10
+        
+        # Background (empty health)
+        pygame.draw.rect(surface, (255, 0, 0), (bar_x, bar_y, health_bar_width, health_bar_height))
+        
+        # Current health
+        current_width = health_bar_width * health_percent
+        pygame.draw.rect(surface, (0, 255, 0), (bar_x, bar_y, current_width, health_bar_height))
+            
         pass
 
     def set_knockback(self, px, py, dist):

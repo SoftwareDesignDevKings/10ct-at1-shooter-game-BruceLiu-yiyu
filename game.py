@@ -5,10 +5,12 @@ import os
 import math
 import app
 import time
-
+import weapon
 from enemy import Enemy
 from player import Player
 from coin import Coin
+from fireball import Fireball
+from weapon import Weapon
 #from powerups import Powerups
 
 class Game:
@@ -35,7 +37,7 @@ class Game:
         self.game_over = False
 
         self.coins = []
-
+        self.weapons = []
         self.enemies = []
         self.enemy_spawn_timer = 0
         self.enemy_spawn_interval = 60
@@ -135,6 +137,7 @@ class Game:
         self.check_player_enemy_collisions()
         self.check_bullet_enemy_collisions()
         self.check_player_coin_collisions()
+        self.check_player_weapon_collisions()
         if self.player.health <= 0:
             self.game_over = True
             return
@@ -173,6 +176,15 @@ class Game:
             
         for enemy in self.enemies:
             enemy.draw(self.screen)
+        
+        for weapon in self.weapons:
+            weapon.draw(self.screen)
+        # Add durability display
+        if self.player.equipped_weapon:
+            dura = self.player.equipped_weapon.durability
+            max_dura = self.player.equipped_weapon.max_durability
+            dura_text = self.font_small.render(f"Wand: {dura}/{max_dura}", True, (255, 215, 0))
+            self.screen.blit(dura_text, (10, 130))
 
         # Refresh the screen
         pygame.display.flip()
@@ -198,6 +210,8 @@ class Game:
 
                 enemy_type = random.choice(list(self.assets["enemies"].keys()))
                 enemy = Enemy(x, y, enemy_type, self.assets["enemies"])
+                enemy.max_health += self.player.level
+                enemy.health = enemy.max_health
                 self.enemies.append(enemy)
 
     def check_player_enemy_collisions(self):
@@ -245,19 +259,26 @@ class Game:
         return nearest
     
     def check_bullet_enemy_collisions(self):
-        for bullet in self.player.bullets:
-            for enemy in self.enemies:
-                if bullet.rect.colliderect(enemy.rect):
+        for bullet in self.player.bullets[:]:
+            for enemy in self.enemies[:]:
+                if pygame.sprite.collide_mask(bullet, enemy):
+                    enemy.health -= bullet.damage
+                # Remove bullet regardless of enemy survival
                     self.player.bullets.remove(bullet)
-                    self.enemies.remove(enemy)
+                    if enemy.health <= 0:
+                        self.enemies.remove(enemy)
 
-                    #simulate_chance()
+                        #simulate_chance()
 
-                    #if y < 1:
-                    #    new_powerups = Powerups(enemy.x, enemy.y)
-                    #    self.powerups.append(new_powerups) 
-                    new_coin = Coin(enemy.x, enemy.y)
-                    self.coins.append(new_coin)  
+                        #if y < 1:
+                        #    new_powerups = Powerups(enemy.x, enemy.y)
+                        #    self.powerups.append(new_powerups) 
+                        new_coin = Coin(enemy.x, enemy.y)
+                        self.coins.append(new_coin)  
+                        if random.random() < 0.5: 
+                            new_weapon = Weapon(enemy.x, enemy.y, self.assets)
+                            self.weapons.append(new_weapon)
+                        break  # Exit the inner loop if a collision is detected
 
     def check_player_coin_collisions(self):
         coins_collected = []
@@ -269,6 +290,17 @@ class Game:
         for c in coins_collected:
             if c in self.coins:
                 self.coins.remove(c) 
+    
+    def check_player_weapon_collisions(self): 
+        collected_weapons = []
+        for weapon in self.weapons: 
+            if pygame.sprite.collide_mask(weapon, self.player):
+                self.player.equip_weapon(weapon)
+                collected_weapons.append(weapon)
+
+        for weapon in collected_weapons:
+            self.weapons.remove(weapon)
+
 
     def pick_random_upgrades(self, num):
         possible_upgrades = [
@@ -276,7 +308,7 @@ class Game:
         {"name": "Faster Bullet",  "desc": "Bullet speed +2"},
         {"name": "Extra Bullet",   "desc": "Fire additional bullet"},
         {"name": "Shorter Cooldown", "desc": "Shoot more frequently"},
-        {"name": "Piercing Bullets", "desc": "Piercing Bullets, duration 20 sec"}
+        #{"name": "Piercing Bullets", "desc": "Piercing Bullets, duration 20 sec"}
     ]
         return random.sample(possible_upgrades, k=num)
     

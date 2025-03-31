@@ -4,8 +4,10 @@ import app  # Contains global settings like WIDTH, HEIGHT, PLAYER_SPEED, etc.
 import math
 import random
 import time
+import weapon
 
 from bullet import Bullet
+from fireball import Fireball
 
 class Player:
     def __init__(self, x, y, assets):
@@ -22,9 +24,16 @@ class Player:
         self.animation_timer = 0
         self.animation_speed = 8
 
+        self.equipped_weapon = False
+        self.weapon = None
+        self.weapon_timer = 0
+        self.weapon_durability = 20
+
+
         # TODO: 3. Create a collision rectangle (self.rect) 
         self.image = self.animations[self.state][self.frame_index]
         self.rect = self.image.get_rect(center=(self.x, self.y))
+        #self.mask = pygame.mask.from_surface(self.image)
         self.facing_left = False
 
         # TODO: 4. Add player health 
@@ -34,12 +43,13 @@ class Player:
         self.invincible = False
 
         self.bullet_speed = 10
-        self.bullet_size = 1
+        self.bullet_size = 10
         self.bullet_count = 1
-        self.shoot_cooldown = 10
+        self.shoot_cooldown = 1
         self.shoot_timer = 0
         self.bullets = []
         self.assets = assets
+
 
         self.level = 1
 
@@ -99,6 +109,7 @@ class Player:
             if bullet.y < 0 or bullet.y > app.HEIGHT or bullet.x < 0 or bullet.x > app.WIDTH:
                 self.bullets.remove(bullet)
 
+
         self.animation_timer += 1
         if self.animation_timer >= self.animation_speed:
             self.animation_timer = 0
@@ -108,6 +119,14 @@ class Player:
             center = self.rect.center
             self.rect = self.image.get_rect()
             self.rect.center = center
+
+        if self.equipped_weapon:
+            self.equipped_weapon.facing_left = self.facing_left
+            self.equipped_weapon.update(self)
+
+            if self.weapon_cooldown > 0:
+                self.weapon_cooldown -= 1
+            
 
     def draw(self, surface):
         """Draw the player on the screen."""
@@ -120,6 +139,9 @@ class Player:
         
         for bullet in self.bullets:
             bullet.draw(surface)
+
+        if self.equipped_weapon:
+            self.equipped_weapon.draw(surface)
         
 
     def take_damage(self, amount):
@@ -138,7 +160,8 @@ class Player:
     def shoot_toward_position(self, tx, ty):
         if self.shoot_timer >= self.shoot_cooldown:
             return
-
+        if self.weapon_timer >= self.shoot_cooldown:
+            return
         dx = tx - self.x
         dy = ty - self.y
         dist = math.sqrt(dx**2 + dy**2)
@@ -152,6 +175,10 @@ class Player:
         base_angle = math.atan2(vy, vx)
         mid = (self.bullet_count - 1) / 2
 
+        if self.equipped_weapon:
+            if not self.equipped_weapon.use():  # REDUCES DURABILITY ONCE PER SHOT
+                self.equipped_weapon = None
+
         for i in range(self.bullet_count):
             offset = i - mid
             spread_radians = math.radians(angle_spread * offset)
@@ -160,9 +187,16 @@ class Player:
             final_vx = math.cos(angle) * self.bullet_speed
             final_vy = math.sin(angle) * self.bullet_speed
 
-            bullet = Bullet(self.x, self.y, final_vx, final_vy, self.bullet_size, self.assets)
+            if self.equipped_weapon:
+                bullet = Fireball(self.x, self.y, final_vx, final_vy, self.bullet_size, self.assets)
+            else:
+                bullet = Bullet(self.x, self.y, final_vx, final_vy, self.bullet_size)
+            
             self.bullets.append(bullet)
+        
         self.shoot_timer = 0
+        self.weapon_cooldown = 5
+        
 
     def shoot_toward_mouse(self, pos):
         mx, my = pos # m denotes mouse
@@ -179,3 +213,9 @@ class Player:
         invincibility_duration = 0.7 
         time.sleep(invincibility_duration)
         self.invincible = False
+    
+    def equip_weapon (self, weapon): 
+        if self.equipped_weapon:
+            return  # Already have a weapon
+        weapon.equipped = True
+        self.equipped_weapon = weapon
