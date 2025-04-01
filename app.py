@@ -6,8 +6,8 @@ import os
 #                               CONSTANTS
 # --------------------------------------------------------------------------
 
-WIDTH = 800
-HEIGHT = 600
+WIDTH = 1500
+HEIGHT = 1000
 FPS = 60
 
 PLAYER_SPEED = 3

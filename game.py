@@ -181,12 +181,29 @@ class Game:
             weapon.draw(self.screen)
         # Add durability display
         if self.player.equipped_weapon:
-            dura = self.player.equipped_weapon.durability
-            max_dura = self.player.equipped_weapon.max_durability
-            dura_text = self.font_small.render(f"Wand: {dura}/{max_dura}", True, (255, 215, 0))
-            self.screen.blit(dura_text, (10, 130))
+            weapon = self.player.equipped_weapon
+            # Health bar dimensions and colors
+            bar_width = 40
+            bar_height = 6
+            background_color = (211, 211, 211)    # Grey
+            durability_color = (207, 159, 255)   # Purple
+            
+            # Calculate position above the wand
+            bar_x = weapon.rect.centerx - bar_width // 2
+            bar_y = weapon.rect.top - 20  # Position 20 pixels above the wand
+            
+            # Calculate current durability percentage
+            dura_percent = weapon.durability / weapon.max_durability
+            current_width = bar_width * dura_percent
+            
+            # Draw background
+            pygame.draw.rect(self.screen, background_color, (bar_x, bar_y, bar_width, bar_height))
+            # Draw current durability
+            pygame.draw.rect(self.screen, durability_color, (bar_x, bar_y, current_width, bar_height))
 
-        # Refresh the screen
+        for explosion in self.explosions:
+            explosion.draw(self.screen)
+            # Refresh the screen
         pygame.display.flip()
 
     def spawn_enemies(self):
@@ -268,17 +285,13 @@ class Game:
                     if enemy.health <= 0:
                         self.enemies.remove(enemy)
 
-                        #simulate_chance()
-
-                        #if y < 1:
-                        #    new_powerups = Powerups(enemy.x, enemy.y)
-                        #    self.powerups.append(new_powerups) 
                         new_coin = Coin(enemy.x, enemy.y)
                         self.coins.append(new_coin)  
-                        if random.random() < 0.5: 
+                        if random.random() < 0.05: 
                             new_weapon = Weapon(enemy.x, enemy.y, self.assets)
                             self.weapons.append(new_weapon)
                         break  # Exit the inner loop if a collision is detected
+
 
     def check_player_coin_collisions(self):
         coins_collected = []
@@ -304,26 +317,31 @@ class Game:
 
     def pick_random_upgrades(self, num):
         possible_upgrades = [
-        {"name": "Bigger Bullet",  "desc": "Bullet size +5"},
-        {"name": "Faster Bullet",  "desc": "Bullet speed +2"},
-        {"name": "Extra Bullet",   "desc": "Fire additional bullet"},
-        {"name": "Shorter Cooldown", "desc": "Shoot more frequently"},
-        #{"name": "Piercing Bullets", "desc": "Piercing Bullets, duration 20 sec"}
+        {"name": "Piercing Bullets", "desc": "Bullets pierce 1 extra enemy"},
+        {"name": "Homing Bullets", "desc": "Bullets track nearby enemies"},
+        {"name": "Explosive Rounds", "desc": "Bullets explode on impact"},
+        {"name": "Faster Bullet", "desc": "Bullet speed +2"},
+        {"name": "Extra Bullet", "desc": "Fire additional bullet"},
+        {"name": "Shorter Cooldown", "desc": "Shoot more frequently"}
     ]
         return random.sample(possible_upgrades, k=num)
     
     def apply_upgrade(self, player, upgrade):
         name = upgrade["name"]
-        if name == "Bigger Bullet":
-            player.bullet_size += 5
+            
+        if name == "Higher Damage":
+            for bullet in self.player.bullets: 
+                bullet.damage *= 1.5
         elif name == "Faster Bullet":
             player.bullet_speed += 2
         elif name == "Extra Bullet":
             player.bullet_count += 1
-        elif name == "Shorter Cooldown":
-            player.shoot_cooldown = max(1, int(player.shoot_cooldown * 0.8))
-        #elif name == "Piercing Bullets": 
-            #player.
+        elif name == "Homing Bullets":
+            player.homing = True
+        elif name == "Piercing Bullets":
+            player.piercing += 1
+        elif name == "Explosive Rounds":
+            player.explosive = True
 
 
 
