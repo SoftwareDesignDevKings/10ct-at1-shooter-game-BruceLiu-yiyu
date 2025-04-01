@@ -3,14 +3,14 @@ import pygame
 
 
 class Fireball:
-    def __init__(self, x, y, vx, vy, size, assets):
+    def __init__(self, player, x, y, vx, vy, size, assets):
         self.x = x
         self.y = y
         self.vx = vx
         self.vy = vy
         self.size = size
         self.animation = assets["bullets"]
-        self.damage = 3
+        self.damage = player.base_damage + 3
 
 
         self.frame_index = 0

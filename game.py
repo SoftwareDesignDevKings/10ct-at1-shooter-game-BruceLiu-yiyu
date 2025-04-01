@@ -5,13 +5,32 @@ import os
 import math
 import app
 import time
+import fireball
+import bullet
+
 import weapon
 from enemy import Enemy
 from player import Player
 from coin import Coin
 from fireball import Fireball
 from weapon import Weapon
+from bullet import Bullet
+
 #from powerups import Powerups
+
+
+def weighted_sample_without_replacement(items, weight_key, k):
+        """Select k items from items using weights (from weight_key) without replacement."""
+        chosen = []
+        items_copy = list(items)
+        while items_copy and len(chosen) < k:
+            weights = [item[weight_key] for item in items_copy]
+            selected = random.choices(items_copy, weights=weights, k=1)[0]
+            chosen.append(selected)
+            # Remove the selected item so that it cannot be chosen again.
+            items_copy.remove(selected)
+        return chosen
+
 
 class Game:
     def __init__(self):
@@ -42,17 +61,22 @@ class Game:
         self.enemy_spawn_timer = 0
         self.enemy_spawn_interval = 60
         self.enemies_per_spawn = 1
+
+        self.possible_upgrades = [
+            {"name": "SNIPER", "desc": "Bullets pierce enemies", "weight": 3, "min_level": 4},
+            {"name": "SPEEDSTER", "desc": "Bullet speed +3, Player speed +50%", "weight": 8, "min_level": 1},
+            {"name": "ARCHER", "desc": "Fire additional bullet", "weight": 6, "min_level": 1},
+            {"name": "BERSERK", "desc": "Damage multiplier x1.5", "weight": 4, "min_level": 3},
+            {"name": "HEALER", "desc": "Heal 1 hp", "weight": 6, "min_level": 3}, 
+            {"name": "INVESTOR", "desc": "25% more xp", "weight": 3, "min_level": 1}
+        ]
+        self.pierce_level = 0
         
         self.in_level_up_menu = False
         self.upgrade_options = []
 
         self.reset_game()
 
-    '''def simulate_chance(max_number):
-            # Generate a random number between 1 and 100
-            chance_value = random.randint(0, max_number)
-            return chance_value'''
-        
     def reset_game(self):
         self.player = Player(app.WIDTH // 2, app.HEIGHT // 2, self.assets)
         
@@ -61,8 +85,12 @@ class Game:
         self.enemies_per_spawn = 1
 
         self.coins = []
-        #self.powerups = []
+
+        self.pierce_level = 0
+        self.pierce_count = 0
         
+        self.xp_value = 1
+
         self.game_over = False
 
     def create_random_background(self, width, height, floor_tiles):
@@ -139,6 +167,7 @@ class Game:
         self.check_player_coin_collisions()
         self.check_player_weapon_collisions()
         if self.player.health <= 0:
+            self.enemies.clear()
             self.game_over = True
             return
         self.spawn_enemies()
@@ -168,6 +197,9 @@ class Game:
         xp_to_next = max(0, next_level_xp - self.player.xp)
         xp_next_surf = self.font_small.render(f"Next Lvl XP: {xp_to_next}", True, (255, 255, 255))
         self.screen.blit(xp_next_surf, (10, 100))
+
+        level_display = self.font_small.render(f"Level: {self.player.level}", True, (255, 255, 255))
+        self.screen.blit(level_display, (10, 130))
 
         if self.game_over:
             self.draw_game_over_screen()
@@ -200,10 +232,6 @@ class Game:
             pygame.draw.rect(self.screen, background_color, (bar_x, bar_y, bar_width, bar_height))
             # Draw current durability
             pygame.draw.rect(self.screen, durability_color, (bar_x, bar_y, current_width, bar_height))
-
-        for explosion in self.explosions:
-            explosion.draw(self.screen)
-            # Refresh the screen
         pygame.display.flip()
 
     def spawn_enemies(self):
@@ -227,7 +255,12 @@ class Game:
 
                 enemy_type = random.choice(list(self.assets["enemies"].keys()))
                 enemy = Enemy(x, y, enemy_type, self.assets["enemies"])
-                enemy.max_health += self.player.level
+                if 20 > self.player.level > 5: 
+                    enemy.max_health += self.player.level + 3
+                elif self.player.level > 20:
+                    enemy.max_health += self.player.level * 1.5
+                else: 
+                    enemy.max_health += self.player.level
                 enemy.health = enemy.max_health
                 self.enemies.append(enemy)
 
@@ -257,7 +290,7 @@ class Game:
         self.screen.blit(game_over_surf, game_over_rect)
 
         # Prompt to restart or quit
-        prompt_surf = self.font_small.render("Press R to Play Again or ESC to Quit", True, (255, 255, 255))
+        prompt_surf = self.font_small.render("Press R to Reset", True, (255, 255, 255))
         prompt_rect = prompt_surf.get_rect(center=(app.WIDTH // 2, app.HEIGHT // 2 + 20))
         self.screen.blit(prompt_surf, prompt_rect)
 
@@ -276,21 +309,38 @@ class Game:
         return nearest
     
     def check_bullet_enemy_collisions(self):
+        # Loop over a copy of the bullets list allowing removal during iteration.
         for bullet in self.player.bullets[:]:
+            bullet_pierce_count = 0  # Reset piercing count for this bullet.
+            hit_enemies = []  # List to store enemies already hit by this bullet.
+            # Loop over a copy of the enemies list as well.
             for enemy in self.enemies[:]:
-                if pygame.sprite.collide_mask(bullet, enemy):
+                # Check collision only if this enemy has not already been hit.
+                if pygame.sprite.collide_mask(bullet, enemy) and enemy not in hit_enemies:
+                    # Register that we've hit this enemy.
+                    hit_enemies.append(enemy)
+                    # Apply damage.
                     enemy.health -= bullet.damage
-                # Remove bullet regardless of enemy survival
-                    self.player.bullets.remove(bullet)
+                    bullet_pierce_count += 1
+
+                    # Check if enemy is dead.
                     if enemy.health <= 0:
                         self.enemies.remove(enemy)
-
-                        new_coin = Coin(enemy.x, enemy.y)
-                        self.coins.append(new_coin)  
-                        if random.random() < 0.05: 
+                        # Spawn a weapon or a coin based on a random chance.
+                        if random.random() < 0.02:  # 2% chance to drop a weapon
                             new_weapon = Weapon(enemy.x, enemy.y, self.assets)
                             self.weapons.append(new_weapon)
-                        break  # Exit the inner loop if a collision is detected
+                        else:
+                            new_coin = Coin(enemy.x, enemy.y)
+                            self.coins.append(new_coin)
+
+                    # If the bullet has exceeded its allowed pierce hits, remove it.
+                    if bullet_pierce_count > self.pierce_level:
+                        self.player.bullets.remove(bullet)
+                        # No need to continue checking collisions for this bullet.
+                        break
+                              # Exit the inner loop if a collision is detected
+
 
 
     def check_player_coin_collisions(self):
@@ -298,7 +348,7 @@ class Game:
         for coin in self.coins:
             if coin.rect.colliderect(self.player.rect):
                 coins_collected.append(coin)
-                self.player.add_xp(1)
+                self.player.add_xp(self.xp_value)
 
         for c in coins_collected:
             if c in self.coins:
@@ -314,34 +364,37 @@ class Game:
         for weapon in collected_weapons:
             self.weapons.remove(weapon)
 
-
     def pick_random_upgrades(self, num):
-        possible_upgrades = [
-        {"name": "Piercing Bullets", "desc": "Bullets pierce 1 extra enemy"},
-        {"name": "Homing Bullets", "desc": "Bullets track nearby enemies"},
-        {"name": "Explosive Rounds", "desc": "Bullets explode on impact"},
-        {"name": "Faster Bullet", "desc": "Bullet speed +2"},
-        {"name": "Extra Bullet", "desc": "Fire additional bullet"},
-        {"name": "Shorter Cooldown", "desc": "Shoot more frequently"}
+        available_upgrades = [
+        up for up in self.possible_upgrades 
+        if self.player.level >= up.get("min_level", 1)
+        and (up["name"] != "HEALER" or self.player.health < self.player.max_health)
     ]
-        return random.sample(possible_upgrades, k=num)
+    # Use the weighted sampler to pick a few unique upgrades.
+        return weighted_sample_without_replacement(available_upgrades, "weight", num)
     
     def apply_upgrade(self, player, upgrade):
         name = upgrade["name"]
             
-        if name == "Higher Damage":
-            for bullet in self.player.bullets: 
-                bullet.damage *= 1.5
-        elif name == "Faster Bullet":
-            player.bullet_speed += 2
-        elif name == "Extra Bullet":
-            player.bullet_count += 1
-        elif name == "Homing Bullets":
-            player.homing = True
-        elif name == "Piercing Bullets":
-            player.piercing += 1
-        elif name == "Explosive Rounds":
-            player.explosive = True
+        if name == "BERSERK":
+            player.base_damage *= 1.5
+        elif name == "SPEEDSTER":
+            player.bullet_speed += 3
+            player.speed += 0.5
+        elif name == "ARCHER":
+            player.bullet_count += 2
+        elif name == "HEALER":
+            if player.health >= 5:
+                player.health = 5
+            else: 
+                player.health += 1
+        elif name == "INVESTOR": 
+            self.xp_value *= 1.25
+        elif name == "SNIPER":
+            self.pierce_level += 1
+            self.possible_upgrades = [
+            up for up in self.possible_upgrades if up["name"] != "SNIPER"
+        ]
 
 
 
@@ -352,14 +405,25 @@ class Game:
         self.screen.blit(overlay, (0, 0))
 
         # Title
-        title_surf = self.font_large.render("Choose an Upgrade!", True, (255, 255, 0))
+        title_surf = self.font_large.render("Choose an Upgrade!", True, (255, 255, 255))
         title_rect = title_surf.get_rect(center=(app.WIDTH // 2, app.HEIGHT // 3 - 50))
         self.screen.blit(title_surf, title_rect)
 
         # Options
+        upgrade_colors = {
+        "BERSERK": (255, 0, 0),       # Red
+        "SPEEDSTER": (255, 255, 0),    # Yellow
+        "ARCHER": (0, 213, 255),     # Light Blue
+        "SNIPER": (0, 255, 0),   # Green
+        "HEALER": (255, 182, 193),   # light pink
+        "INVESTOR": (160, 32, 240)  # Purple
+    }
+
         for i, upgrade in enumerate(self.upgrade_options):
             text_str = f"{i+1}. {upgrade['name']} - {upgrade['desc']}"
-            option_surf = self.font_small.render(text_str, True, (255, 255, 255))
+            # Get the color for this upgrade, defaulting to white, if not defined.
+            color = upgrade_colors.get(upgrade["name"].upper(), (255, 255, 255))
+            option_surf = self.font_small.render(text_str, True, color)
             line_y = app.HEIGHT // 3 + i * 40
             option_rect = option_surf.get_rect(center=(app.WIDTH // 2, line_y))
             self.screen.blit(option_surf, option_rect)
@@ -370,8 +434,21 @@ class Game:
         if self.player.xp >= xp_needed:
             # Leveled up
             self.player.level += 1
+            self.enemies.clear()
             self.in_level_up_menu = True
             self.upgrade_options = self.pick_random_upgrades(3)
 
             # Increase enemy spawns each time we level up
             self.enemies_per_spawn += 1
+
+    def weighted_sample_without_replacement(items, weight_key, k):
+        """Select k items from items using weights (from weight_key) without replacement."""
+        chosen = []
+        items_copy = list(items)
+        while items_copy and len(chosen) < k:
+            weights = [item[weight_key] for item in items_copy]
+            selected = random.choices(items_copy, weights=weights, k=1)[0]
+            chosen.append(selected)
+            # Remove the selected item so that it cannot be chosen again.
+            items_copy.remove(selected)
+        return chosen

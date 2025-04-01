@@ -3,14 +3,15 @@ import pygame
 import os
 import math
 
+
 class Bullet:
-    def __init__(self, x, y, vx, vy, size):
+    def __init__(self, player, x, y, vx, vy, size):
         self.x = x
         self.y = y
         self.vx = vx
         self.vy = vy
         self.size = size
-        self.damage = 1
+        self.damage = player.base_damage
 
         self.image = app.pygame.Surface((self.size, self.size), app.pygame.SRCALPHA)
         self.image.fill((255, 255, 255))

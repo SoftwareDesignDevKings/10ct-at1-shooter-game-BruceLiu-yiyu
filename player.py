@@ -40,6 +40,7 @@ class Player:
         self.xp = 0
         
         self.health = 5
+        self.max_health = 5
         self.invincible = False
 
         self.bullet_speed = 10
@@ -49,6 +50,7 @@ class Player:
         self.shoot_timer = 0
         self.bullets = []
         self.assets = assets
+        self.base_damage = 1
 
 
         self.level = 1
@@ -188,9 +190,9 @@ class Player:
             final_vy = math.sin(angle) * self.bullet_speed
 
             if self.equipped_weapon:
-                bullet = Fireball(self.x, self.y, final_vx, final_vy, self.bullet_size, self.assets)
+                bullet = Fireball(self, self.x, self.y, final_vx, final_vy, self.bullet_size, self.assets)
             else:
-                bullet = Bullet(self.x, self.y, final_vx, final_vy, self.bullet_size)
+                bullet = Bullet(self, self.x, self.y, final_vx, final_vy, self.bullet_size)
             
             self.bullets.append(bullet)
         
